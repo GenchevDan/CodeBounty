@@ -1,0 +1,10 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" rx="12" fill="#f4efe4"/>
+  <!-- green highlighter sweep behind the mark -->
+  <rect x="13" y="27" width="38" height="16" rx="3" fill="#bfe6b0" transform="rotate(-6 32 35)"/>
+  <!-- accepted check -->
+  <path d="M22 34 l7 8 13 -17" fill="none" stroke="#2f7d4f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- typeset braces -->
+  <text x="11" y="26" font-family="'Courier New',monospace" font-size="20" font-weight="700" fill="#25201a">{</text>
+  <text x="46" y="26" font-family="'Courier New',monospace" font-size="20" font-weight="700" fill="#25201a">}</text>
+</svg>

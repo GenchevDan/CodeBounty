@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Red+Hat+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────────────────
+   CodeBounty — a beautifully typeset warm-paper RÉSUMÉ/PORTFOLIO document that is
+   actually a winner-take-all bounty dapp. Each bounty is a CV "role" on a timeline;
+   the accepted fix earns a green-highlighter sweep + a letterpress ACCEPTED·PAID stamp.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --ground: #f4efe4;     /* warm off-white page */
+  --paper: #faf6ec;      /* card paper */
+  --ink: #25201a;        /* warm umber near-black */
+  --ink2: #6e6353;       /* secondary text */
+  --hair: #dbd2c0;       /* hairlines */
+  --hair2: #e8e0cf;
+
+  --amber: #e0922f;      /* the one saturated accent — post/escrow/action */
+  --amber-soft: #f2c879; /* buggy-line highlighter */
+  --green: #2f7d4f;      /* accepted / paid / verified */
+  --green-hl: #bfe6b0;   /* winning-fix highlighter */
+  --blue-hl: #b9d6ec;    /* context / expected-behaviour highlighter */
+  --open: #b59b6a;       /* open status ring */
+  --muted: #a99f8c;      /* expired / refunded */
+
+  --ff-serif: 'Spectral', Georgia, 'Times New Roman', serif;
+  --ff-mono: 'Red Hat Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--ff-serif);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* darkened vignette corners — the "scanned document" feel */
+.vignette {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 50%, transparent 58%, rgba(43, 38, 30, 0.10) 100%);
+}
+.grain { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.5;
+  background-image: radial-gradient(rgba(43,38,30,0.04) 1px, transparent 1px); background-size: 4px 4px; }
+
+.wrap { position: relative; z-index: 1; }
+
+/* ── typography ─────────────────────────────────────────────────────────────── */
+.serif { font-family: var(--ff-serif); }
+.mono { font-family: var(--ff-mono); }
+.smallcaps { font-variant: small-caps; letter-spacing: 0.06em; }
+.title { font-family: var(--ff-serif); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; color: var(--ink); }
+.sub { font-family: var(--ff-mono); font-size: 0.74rem; color: var(--ink2); letter-spacing: 0.02em; }
+
+/* ── breadcrumb / top nav ───────────────────────────────────────────────────── */
+.crumbs { font-family: var(--ff-serif); font-size: 0.96rem; color: var(--ink2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.crumbs b { color: var(--ink); font-weight: 600; }
+.crumbs .sep { color: var(--hair); }
+.chain-tag { font-family: var(--ff-mono); font-size: 0.64rem; color: var(--ink2); border: 1px solid var(--hair); border-radius: 5px; padding: 2px 7px; background: var(--paper); }
+
+/* ── search / inputs ────────────────────────────────────────────────────────── */
+.field {
+  font-family: var(--ff-mono); font-size: 0.82rem; color: var(--ink);
+  background: var(--paper); border: 1px solid var(--hair); border-radius: 8px;
+  padding: 8px 12px; width: 100%; outline: none;
+}
+.field::placeholder { color: var(--muted); }
+.field:focus { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(224,146,47,0.14); }
+.field-serif { font-family: var(--ff-serif); font-size: 0.98rem; }
+textarea.field { resize: vertical; line-height: 1.5; }
+
+/* ── timeline ───────────────────────────────────────────────────────────────── */
+.timeline { position: relative; }
+.tl-line { position: absolute; left: 118px; top: 6px; bottom: 6px; width: 1.5px; background: var(--hair); }
+.entry { position: relative; display: grid; grid-template-columns: 104px 1fr; gap: 28px; padding: 0 0 14px; }
+.gutter { text-align: right; padding-top: 3px; }
+.gutter .when { font-family: var(--ff-mono); font-size: 0.7rem; color: var(--ink2); }
+.gutter .left { font-family: var(--ff-mono); font-size: 0.66rem; color: var(--muted); margin-top: 3px; }
+
+.node { position: absolute; left: 112px; top: 5px; width: 13px; height: 13px; border-radius: 50%; background: var(--ground); z-index: 2; }
+.node-open { border: 2.5px solid var(--open); }
+.node-paid { background: var(--green); border: 2.5px solid var(--green); box-shadow: 0 0 0 3px rgba(47,125,79,0.16); }
+.node-expired { border: 2.5px solid var(--muted); }
+.node-expired::after { content: ""; position: absolute; left: -3px; top: 5px; width: 18px; height: 1.5px; background: var(--muted); }
+
+/* ── bounty card ────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--paper); border: 1px solid var(--hair); border-radius: 12px;
+  padding: 18px 20px; box-shadow: 0 1px 0 rgba(43,38,30,0.04), 0 8px 24px -18px rgba(43,38,30,0.45);
+}
+.card-paid { border-color: color-mix(in srgb, var(--green) 40%, var(--hair)); }
+.card-expired { opacity: 0.72; }
+
+.amount-chip {
+  font-family: var(--ff-mono); font-size: 0.82rem; font-weight: 600; color: var(--ink);
+  background: color-mix(in srgb, var(--amber-soft) 36%, var(--paper));
+  border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--hair));
+  border-radius: 7px; padding: 3px 9px; white-space: nowrap;
+}
+
+/* status seals */
+.seal { font-family: var(--ff-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid; display: inline-flex; align-items: center; gap: 4px; }
+.seal-open { color: var(--open); border-color: var(--open); background: color-mix(in srgb, var(--open) 12%, var(--paper)); }
+.seal-paid { color: var(--green); border-color: var(--green); background: color-mix(in srgb, var(--green) 13%, var(--paper)); }
+.seal-expired { color: var(--muted); border-color: var(--muted); background: color-mix(in srgb, var(--muted) 12%, var(--paper)); }
+
+/* ── code panel + highlighter marks ─────────────────────────────────────────── */
+.code {
+  font-family: var(--ff-mono); font-size: 0.78rem; line-height: 1.65; color: var(--ink);
+  background: #fbf8ef; border: 1px solid var(--hair); border-radius: 8px;
+  padding: 12px 14px; overflow-x: auto; white-space: pre; tab-size: 2;
+}
+.code .ln { display: inline-block; width: 2em; color: var(--muted); user-select: none; }
+.code .bug { background: color-mix(in srgb, var(--amber-soft) 60%, transparent); border-radius: 3px; }
+
+.mark { padding: 0 0.1em; border-radius: 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.mark-amber { background: color-mix(in srgb, var(--amber-soft) 62%, transparent); }
+.mark-blue { background: color-mix(in srgb, var(--blue-hl) 66%, transparent); }
+.mark-green { background: color-mix(in srgb, var(--green-hl) 70%, transparent); }
+
+/* ── fix sub-entries ────────────────────────────────────────────────────────── */
+.fix { display: grid; grid-template-columns: auto 1fr; gap: 11px; padding: 11px 0; border-top: 1px dashed var(--hair); align-items: start; }
+.fix-dim { opacity: 0.5; }
+.fix-num { font-family: var(--ff-mono); font-size: 0.72rem; color: var(--muted); padding-top: 1px; }
+.triage { font-family: var(--ff-mono); font-size: 0.62rem; padding: 1px 7px; border-radius: 5px; border: 1px solid var(--hair); color: var(--ink2); background: var(--ground); }
+.triage-ok { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, var(--hair)); }
+.triage-warn { color: #a9730a; border-color: color-mix(in srgb, var(--amber) 50%, var(--hair)); }
+
+/* ── the signature ACCEPTANCE STAMP ─────────────────────────────────────────── */
+.stamp {
+  font-family: var(--ff-mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em;
+  color: var(--green); border: 2px solid var(--green); border-radius: 6px;
+  padding: 4px 10px; display: inline-block; transform: rotate(-7deg);
+  background: color-mix(in srgb, var(--green) 8%, var(--paper));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 1px 1px 0 rgba(47,125,79,0.25);
+  text-transform: uppercase;
+}
+@keyframes stamp-in { 0% { transform: scale(1.6) rotate(-7deg); opacity: 0; } 60% { transform: scale(0.94) rotate(-7deg); opacity: 1; } 100% { transform: scale(1) rotate(-7deg); } }
+.stamp-in { animation: stamp-in 0.45s cubic-bezier(.2,1.3,.4,1) both; }
+
+/* green highlighter sweep over the winning fix */
+.sweep {
+  background-image: linear-gradient(color-mix(in srgb, var(--green-hl) 75%, transparent), color-mix(in srgb, var(--green-hl) 75%, transparent));
+  background-repeat: no-repeat; background-position: 0 0; background-size: 0% 100%;
+  border-radius: 3px;
+}
+.sweep-on { animation: sweep 0.6s 0.1s ease forwards; }
+@keyframes sweep { to { background-size: 100% 100%; } }
+
+/* ── buttons ────────────────────────────────────────────────────────────────── */
+.btn { font-family: var(--ff-mono); font-size: 0.8rem; font-weight: 600; border-radius: 9px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--hair); background: var(--paper); color: var(--ink); transition: transform .1s ease, box-shadow .1s ease; }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-amber { background: var(--amber); border-color: var(--amber); color: #fff; box-shadow: 0 6px 16px -8px rgba(224,146,47,0.8); }
+.btn-ink { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.btn-sm { font-size: 0.72rem; padding: 6px 11px; }
+
+/* ── floating stats bar ─────────────────────────────────────────────────────── */
+.statsbar {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 20;
+  width: min(960px, calc(100% - 32px));
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(10px) saturate(1.1);
+  border: 1px solid var(--hair); border-radius: 16px;
+  box-shadow: 0 18px 50px -22px rgba(43,38,30,0.6);
+  padding: 12px 18px; display: flex; align-items: center; gap: 20px;
+}
+.stat .n { font-family: var(--ff-mono); font-size: 1.2rem; font-weight: 600; color: var(--ink); line-height: 1; }
+.stat .k { font-family: var(--ff-mono); font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink2); margin-top: 3px; }
+.ruler { flex: 1; height: 28px; position: relative; }
+.ruler .tick { position: absolute; bottom: 0; width: 1px; background: var(--hair); }
+.icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--hair); background: var(--paper); display: grid; place-items: center; cursor: pointer; color: var(--ink2); }
+.icon-btn:hover { color: var(--ink); border-color: var(--amber); }
+
+/* ── misc ───────────────────────────────────────────────────────────────────── */
+.flat-link { color: var(--ink); text-decoration: underline; text-decoration-color: var(--hair); text-underline-offset: 2px; }
+.flat-link:hover { text-decoration-color: var(--amber); color: var(--amber); }
+.scrim { position: fixed; inset: 0; background: rgba(43,38,30,0.42); backdrop-filter: blur(2px); z-index: 50; display: grid; place-items: center; padding: 20px; overflow-y: auto; }
+.modal { background: var(--paper); border: 1px solid var(--hair); border-radius: 16px; box-shadow: 0 30px 80px -30px rgba(43,38,30,0.7); width: 100%; max-width: 560px; padding: 24px 26px; }
+.spin { animation: rot 1s linear infinite; } @keyframes rot { to { transform: rotate(360deg); } }
+.hide-scroll::-webkit-scrollbar { display: none; } .hide-scroll { scrollbar-width: none; }
+.verified { color: var(--green); }
+
+@media (max-width: 680px) {
+  .entry { grid-template-columns: 64px 1fr; gap: 14px; }
+  .tl-line { left: 70px; } .node { left: 64px; }
+  .statsbar { gap: 12px; padding: 10px 12px; }
+  .statsbar .ruler { display: none; }
+}

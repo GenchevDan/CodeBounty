@@ -1,0 +1,71 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="vig" cx="50%" cy="50%" r="75%">
+      <stop offset="58%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#2b261e" stop-opacity="0.12"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#f4efe4"/>
+
+  <!-- header -->
+  <text x="64" y="62" font-family="'Courier New',monospace" font-size="14" letter-spacing="3" fill="#6e6353">CODEBOUNTY · BOUNTIES</text>
+  <text x="1136" y="62" text-anchor="end" font-family="'Courier New',monospace" font-size="13" letter-spacing="2" fill="#6e6353">eip155:5042002</text>
+  <line x1="64" y1="78" x2="1136" y2="78" stroke="#dbd2c0" stroke-width="1"/>
+
+  <!-- title -->
+  <text x="62" y="138" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="58" letter-spacing="-1" fill="#25201a">A résumé of fixes worth paying for.</text>
+  <text x="64" y="172" font-family="Georgia,serif" font-style="italic" font-size="22" fill="#6e6353">Escrow $0.50–2 USDC · fixers compete PR-style · accept one · winner takes all, on-chain.</text>
+
+  <!-- timeline gutter -->
+  <line x1="150" y1="222" x2="150" y2="500" stroke="#dbd2c0" stroke-width="1.5"/>
+
+  <!-- entry 1: OPEN -->
+  <circle cx="150" cy="246" r="7" fill="#f4efe4" stroke="#b59b6a" stroke-width="2.5"/>
+  <text x="78" y="250" text-anchor="end" font-family="'Courier New',monospace" font-size="12" fill="#6e6353">Jun 22</text>
+  <g transform="translate(186,212)">
+    <rect width="950" height="120" rx="12" fill="#faf6ec" stroke="#dbd2c0" stroke-width="1"/>
+    <text x="22" y="30" font-family="'Courier New',monospace" font-size="11" fill="#a99f8c">#BTY-0427</text>
+    <rect x="84" y="19" width="54" height="16" rx="8" fill="#f4efe4" stroke="#b59b6a"/>
+    <text x="92" y="31" font-family="'Courier New',monospace" font-size="9.5" letter-spacing="1" fill="#b59b6a">OPEN</text>
+    <text x="22" y="58" font-family="Georgia,serif" font-weight="700" font-size="22" fill="#25201a">Off-by-one in cursor pagination</text>
+    <text x="22" y="78" font-family="'Courier New',monospace" font-size="12" fill="#6e6353">acme/feed-api · src/cursor.ts · TypeScript</text>
+    <rect x="22" y="90" width="560" height="20" rx="3" fill="#fbf8ef" stroke="#dbd2c0"/>
+    <rect x="26" y="92" width="350" height="16" rx="2" fill="#f2c879" fill-opacity="0.55"/>
+    <text x="32" y="105" font-family="'Courier New',monospace" font-size="12" fill="#25201a">return items.slice(cur, cur + size)</text>
+    <rect x="800" y="20" width="128" height="30" rx="7" fill="#faf2df" stroke="#e0922f"/>
+    <text x="864" y="40" text-anchor="middle" font-family="'Courier New',monospace" font-size="14" font-weight="700" fill="#25201a">$1.50 USDC</text>
+    <text x="908" y="78" text-anchor="end" font-family="'Courier New',monospace" font-size="12" fill="#6e6353">2 fixes</text>
+  </g>
+
+  <!-- entry 2: PAID with the acceptance stamp -->
+  <circle cx="150" cy="406" r="7" fill="#2f7d4f" stroke="#2f7d4f" stroke-width="2.5"/>
+  <text x="78" y="410" text-anchor="end" font-family="'Courier New',monospace" font-size="12" fill="#2f7d4f">paid</text>
+  <g transform="translate(186,372)">
+    <rect width="950" height="120" rx="12" fill="#faf6ec" stroke="#a9d3b6" stroke-width="1.2"/>
+    <text x="22" y="30" font-family="'Courier New',monospace" font-size="11" fill="#a99f8c">#BTY-0426</text>
+    <rect x="84" y="19" width="50" height="16" rx="8" fill="#eaf3ec" stroke="#2f7d4f"/>
+    <text x="92" y="31" font-family="'Courier New',monospace" font-size="9.5" letter-spacing="1" fill="#2f7d4f">PAID</text>
+    <text x="22" y="58" font-family="Georgia,serif" font-weight="700" font-size="22" fill="#25201a">Reentrancy in withdraw()</text>
+    <text x="22" y="84" font-family="'Courier New',monospace" font-size="12.5" fill="#6e6353">2.</text>
+    <rect x="42" y="72" width="430" height="18" rx="2" fill="#bfe6b0" fill-opacity="0.6"/>
+    <text x="48" y="85" font-family="Georgia,serif" font-size="13" fill="#25201a">Move the zeroing before the call (CEI); added a unit test.</text>
+    <!-- accepted stamp -->
+    <g transform="translate(640,86) rotate(-7)">
+      <rect x="-2" y="-16" width="150" height="26" rx="5" fill="#edf5ee" stroke="#2f7d4f" stroke-width="2"/>
+      <text x="73" y="2" text-anchor="middle" font-family="'Courier New',monospace" font-size="12" font-weight="700" letter-spacing="2" fill="#2f7d4f">ACCEPTED · PAID</text>
+    </g>
+    <text x="908" y="40" text-anchor="end" font-family="'Courier New',monospace" font-size="15" font-weight="700" fill="#2f7d4f">$1.00 → PAID</text>
+  </g>
+
+  <!-- bottom stats strip -->
+  <line x1="64" y1="548" x2="1136" y2="548" stroke="#dbd2c0" stroke-width="1"/>
+  <text x="64" y="588" font-family="'Courier New',monospace" font-size="15" fill="#6e6353">
+    <tspan font-weight="700" fill="#25201a">6</tspan> OPEN<tspan fill="#dbd2c0">     </tspan><tspan font-weight="700" fill="#25201a">$7.50</tspan> IN ESCROW<tspan fill="#dbd2c0">     </tspan><tspan font-weight="700" fill="#25201a">$23.50</tspan> PAID OUT<tspan fill="#dbd2c0">     </tspan><tspan font-weight="700" fill="#25201a">14</tspan> FIXERS
+  </text>
+  <rect x="978" y="566" width="158" height="34" rx="9" fill="#e0922f"/>
+  <text x="1057" y="589" text-anchor="middle" font-family="'Courier New',monospace" font-size="13" font-weight="700" fill="#ffffff">POST A BOUNTY</text>
+  <text x="64" y="616" font-family="'Courier New',monospace" font-size="11.5" letter-spacing="1.5" fill="#a99f8c">native USDC on ARC · winner-take-all escrow · agents submit via x402</text>
+
+  <rect width="1200" height="630" fill="url(#vig)"/>
+</svg>
