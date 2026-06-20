@@ -1,115 +1,158 @@
-![CodeBounty — a résumé of fixes worth paying for](docs/cover.png)
+# [BUG] A GitHub issue is an unfunded wish — `status: wontfix-for-free`
 
-# CodeBounty
+> CodeBounty turns a small bug report into an escrowed dollar that pays out to exactly one fixer.
+> Author posts a TODO and locks $0.50–2 USDC; many people race to fix it; the author accepts one; the contract pays that one the whole thing.
 
-> Post a bug. Escrow a dollar. Let people race to fix it. Pay the one you accept — the rest get nothing.
-
-`ARC TESTNET` · `native USDC` · `winner-take-all escrow` · `x402` — **codebounty-arc.vercel.app**
+**Component:** open-source maintenance · the five-minute fixes nobody does for free
+**Severity:** low per-issue, infinite in aggregate
+**Repo:** `GenchevDan/codebounty` · **Live:** https://codebounty-arc.vercel.app/
 
 ---
 
-## The itch
+### Repro
 
-I've written my own code for ten years, and the truth is most of my open tabs aren't hard problems — they're
-five-minute fixes I keep not doing. An off-by-one. A missing header. A `// TODO: debounce this`. It's often
-genuinely cheaper to pay a dollar for the fix than to lose the evening to it.
+1. File an issue: `off-by-one in cursor pagination, last page repeats the final item`.
+2. Wait.
+3. ...
 
-But a GitHub issue is an **unfunded wish**. Nobody spends their evening on a stranger's 50¢ ask they can't
-prove will ever pay. So CodeBounty makes the dollar real *before* anyone lifts a finger: you escrow it
-on-chain, fixers see it's funded, you accept one, and the contract pays them — you literally cannot stiff
-the winner. Posted as a beautifully typeset résumé of fixes, because a fix worth a dollar deserves a line on
-someone's CV.
+### Expected
 
-## The loop
+A stranger spends fifteen minutes, opens a patch, gets paid the dollar you'd happily have paid.
 
-```
-postBounty(task, $0.50–2)   →  escrowed on-chain, status: Open
-submitFix(id, pointer, note)  →  many fixers compete, PR-style, free to enter
-acceptFix(id, n)              →  AUTHOR ONLY · winner takes 100%, instantly
-   else, after the deadline:
-refundExpired(id)             →  AUTHOR ONLY · the escrow comes home
-```
+### Actual
 
-A fix is a **pointer**, not a blob: a gist/commit/PR URL + a one-line note + a `keccak256` of the two,
-committed on-chain so it can't be quietly swapped after the fact. One fix per address. The author — the human
-who funded it, nobody else — picks the winner. The contract is the trust layer; the judging is human, the way
-code review actually works.
+The issue sits open for nine months. It is, structurally, a wish. There is no money behind it, so there is
+no reason for anyone outside the project to touch it, and the people *inside* the project are busy not doing
+their own version of the same five-minute fix. The bottleneck was never skill — it was that "I'd pay a buck
+for this" is not a thing you can actually *say to the internet* in a way that's binding.
 
-## Only-on-Arc
+### Root cause
 
-A 50¢-to-$2 bounty is incoherent anywhere the gas is a separate, swinging token. Post, submit, accept, claim —
-that's four fee events, and if each one is priced in some volatile gas coin you have to hold and watch, the
-dollar drowns. On **Arc, USDC *is* the gas and the money** (18-decimal native, via `msg.value`, no ERC-20, no
-approvals): the author escrows USDC, the winner claims USDC, every fee along the way is USDC, and sub-second
-finality makes accept→payout feel instant. One unit of account, end to end. That's the whole reason cent-scale,
-many-compete/one-wins bounties — and machine-scale fixer *agents* earning micro-USDC — are viable here and
-basically nowhere else. Take Arc away and CodeBounty is a worse Gitcoin.
+Intent isn't collateral. A promised reward that lives in a comment thread can evaporate, get argued over, or
+just be ignored after the work lands. Until the dollar is *locked* before any work starts — and paid *atomically*
+to one chosen winner — the incentive doesn't clear and nobody rational shows up.
 
-## Agents welcome — x402
+### Fix
 
-A fixer doesn't have to be human. An AI coding agent can submit a fix programmatically over genuine **x402**
-(HTTP-402) and earn the bounty if it's accepted:
+Make the dollar real first. `postBounty(...)` escrows the USDC on-chain at the moment of posting; fixers can
+see the funds are committed before they spend a minute; `acceptFix(...)` hands the entire bounty to the one
+submission the author picks, in the same transaction, with no step in between where the author can back out.
+The contract is the settlement layer. The judgement stays human — a chain can't grade a patch, and this one
+doesn't pretend to.
+
+---
+
+### How a bounty flows
 
 ```
-POST /api/x402/submit          → 402   { accepts:[{ network:"eip155:5042002", asset:native, maxAmountRequired:"0" }] }
-submitFix(id, uri, hash, note) → tx          // native USDC gas — that's the anti-spam
-POST /api/x402/submit  X-PAYMENT: base64({ txHash })
-                               → 200   { fixIndex, triage }   + X-PAYMENT-RESPONSE
+postBounty(taskUri, taskHash, lang, window)   payable, [$0.50 .. $2.00]   →  Status.Open, escrow locked
+        the task body rides inline as compact JSON in taskUri; taskHash = keccak256(it) so it can't be edited later
+
+submitFix(id, fixUri, fixHash, note)          anyone but the author, one per address, free*  →  emits FixSubmitted
+        fixUri = gist/commit/PR pointer · note ≤ 280 chars · fixHash = keccak256(fixUri + " " + note)
+        *free = no protocol fee; you still pay Arc's USDC gas, which is the whole anti-spam story
+
+acceptFix(id, fixIndex)                        AUTHOR ONLY      →  Status.Paid, 100% to that fixer, atomically
+        — or, after the deadline —
+refundExpired(id)                              AUTHOR ONLY      →  Status.Refunded, 100% back to the author
 ```
 
-Honest scope: Arc's USDC is native (no ERC-20, no EIP-3009 gasless `transferWithAuthorization`) and submitting
-a fix has **no protocol fee** — so this is **pay-then-prove**, not a facilitator settlement. The agent does the
-real on-chain work from its own wallet (paying only Arc's USDC gas, which *is* the spam cost), then proves it
-with the tx hash; the route self-verifies the `FixSubmitted` event against the chain. Demo:
-[`agent/submit-demo.mjs`](agent/submit-demo.mjs).
+Notes for whoever reads the code:
 
-## The triage agent
+- **Winner-take-all is the point.** One accepted fix takes the full `b.amount`; everyone else gets nothing.
+  That's what makes a $1 bounty worth a stranger's evening instead of splitting into worthless dust.
+- **`acceptFix` is the only human money decision** and it's gated to `msg.sender == b.author`. No owner, no
+  agent, no third party can move an escrowed wei. The two — and only two — exits are *winner-on-accept* and
+  *author-on-refund*.
+- **Both payout paths are checks-effects-interactions:** status flips to terminal *before* the transfer, so a
+  re-entrant call just hits `NotOpen` and reverts.
+- **The contract is never a vault.** `receive()`/`fallback()` revert (`NoLooseFunds`); the only coins it can hold are bounties still `Open`. Nothing accretes; nothing is retained.
+- **Bounds are constants, not config:** `MIN_BOUNTY = 5e17`, `MAX_BOUNTY = 2e18`, `MIN_WINDOW = 1 hours`,
+  `MAX_WINDOW = 30 days`. No admin can move the band after deploy because there's no admin.
 
-[`agent/triage.mjs`](agent/triage.mjs) is a read-only watcher with **zero money authority** — it can't move a
-cent; only a bounty's own author can accept. What it does is the boring-but-useful part: it fetches each fix
-pointer (is it reachable?), recomputes the `keccak256` and checks it against the on-chain commitment (was the
-patch swapped after submitting?), flags duplicate hashes (copy-and-resubmit / front-running), and ranks the
-clean, earliest candidates so the author has an advisory next to each submission.
-[`agent/demo.mjs`](agent/demo.mjs) runs the whole loop end-to-end from a funded wallet so you can watch
-post → compete → accept → payout happen live.
+### Why this only adds up on Arc
 
-## What I won't pretend
+Trace the fee schedule of one bounty's life: **post, submit, accept, claim-the-payout** — three or four
+on-chain events, each one mandatory, around a prize that tops out at two dollars. On a chain where gas is a
+separate, fluctuating token you'd have to hold and price-watch, that overhead eats the prize alive: you'd be
+spending real money in a second asset just to give away a single dollar in a first one. The unit economics of
+"many fixers compete, one wins, cents change hands" simply don't survive that friction.
 
-- A chain can't judge a patch. No oracle can. CodeBounty guarantees the **money**, not the merit.
-- The author can always **refund after the deadline** instead of accepting. The deadline bounds how long a
-  fixer waits; it does not force a payout. That's the honest trade, stated plainly so nobody's surprised.
-- Plagiarism is fought off-chain (content hash + first-submit timestamp + the triage agent), not prevented
-  on-chain.
+Arc settles in native USDC via `msg.value` — no ERC-20, no `approve` round-trip — so the escrow, the prize,
+and every transaction fee along the path are denominated in the same dollar the bounty is *about*. The amount
+posted, the amount paid, the cost of posting and accepting: one unit of account, sub-second finality on accept.
+That collapse — fee currency == prize currency == unit of account — is the precondition that lets cent-scale,
+race-to-fix bounties exist at all, and it's the same precondition that lets a coding *agent* earn a 90¢ bounty
+without the meta-cost dwarfing the reward.
 
-## Money safety
+### Agents (what's real, what's a demo)
 
-[`CodeBounty.sol`](contracts/CodeBounty.sol) — one self-contained file, no OpenZeppelin, **no owner, no admin,
-no fee, no treasury, no pause**. The only two exits for an escrowed wei are the accepted fixer or the author on
-refund. CEI on both money paths with terminal-status guards (re-entry just reverts `NotOpen`); the bounty band
-`[$0.50, $2]` and the deadline window are immutable constants; `receive`/`fallback` revert so the balance always
-equals the sum of open bounties. Three independent adversarial reviews cleared it before launch — zero blocking
-findings.
+- `app/api/x402/submit/route.ts` — **a real server route**, genuine HTTP-402 wire format
+  (`402` challenge → `X-PAYMENT` → `X-PAYMENT-RESPONSE`). Because submitting carries no protocol fee, the
+  honest model is **pay-then-prove**: an agent calls `submitFix` from its own wallet (paying Arc's USDC gas —
+  the anti-spam), then presents the tx hash; the route fetches the receipt, confirms `to == CONTRACT_ADDRESS`,
+  parses the `FixSubmitted` event, recomputes the `keccak256`, and replays-bounds it with a 600s freshness
+  window. No facilitator, no trusted relayer — it verifies against the chain itself.
+- `agent/triage.mjs` — **a real autonomous watcher**, read-only, **zero money authority**. Polls open bounties
+  every 12s, fetches each fix pointer to check it's reachable, recomputes the on-chain hash to catch a patch
+  swapped after submission, flags duplicate hashes (copy-and-resubmit), and ranks the clean candidates
+  earliest-first so the author has an advisory. It cannot accept anything — only `b.author` can.
+- `agent/submit-demo.mjs`, `agent/demo.mjs` — **demos.** The first drives the x402 loop end-to-end from a
+  funded fixer wallet; the second seeds a full post→compete→accept→payout cycle so you can watch it live.
 
-## Run it
+### Known limitations (filed, not hidden)
 
+- The chain guarantees the **money**, not the **merit**. No oracle decides whether a patch is correct; the
+  funding author does, the way code review actually works.
+- The deadline bounds how long a fixer waits, not whether they get paid. An author can `refundExpired` instead
+  of accepting. Stated up front so nobody's surprised.
+- Plagiarism is fought off-chain: content hash + first-submit timestamp + the triage agent. The contract
+  doesn't adjudicate originality.
+
+---
+
+## Changelog
+
+### [deployed] — Arc testnet
+- `CodeBounty.sol` (Solidity 0.8.35, MIT) live at `0xA773A6f6a0C2C7b627a2F19Ed5725cc2CD895E86`.
+- Escrow band `[$0.50, $2.00]` and window `[1h, 30d]` baked in as immutable constants.
+
+### [added]
+- `postBounty` / `submitFix` / `acceptFix` / `refundExpired` — the full winner-take-all loop.
+- Inline task payload: the bug/TODO body is stored as compact JSON in `taskUri`, committed by `taskHash`.
+- Per-fix tamper-evidence: `fixHash = keccak256(fixUri + " " + note)`, re-checked by the triage agent and the
+  x402 route.
+- `latest(n)`, `getBounty`, `getFixes`, plus running tallies (`openCount`, `paidVolume`, `paidCount`,
+  `refundedCount`, `totalFixes`, `fixerCount`) — cosmetic, never gating money.
+- Real x402 submit route with on-chain self-verification.
+- Autonomous read-only triage agent.
+
+### [guarded]
+- `acceptFix` / `refundExpired` are CEI with terminal-status guards; re-entry reverts `NotOpen`.
+- `receive`/`fallback` revert `NoLooseFunds` — contract balance == Σ open escrows, always.
+- One submission per address per bounty (`hasSubmitted`); author can't fix their own (`AuthorCannotFix`).
+
+### [run]
 ```bash
 npm install
 npm run dev                 # http://localhost:3000
 
-node agent/triage.mjs       # the read-only triage watcher
-node agent/demo.mjs         # seed a live post→compete→accept→payout demo (needs a funded agent wallet)
-```
-
-## Spec
-
-```
-chain ......... ARC testnet (5042002) · native USDC, 18 decimals
-contract ...... CodeBounty.sol — winner-take-all escrow, no admin over funds
-toolchain ..... solc 0.8.35 · paris · optimizer 200 · no viaIR (flatten-verifiable)
-stack ......... Next.js 16 · React 19 · ethers v6 · Tailwind v4
-type .......... Spectral · Red Hat Mono
+node agent/triage.mjs       # autonomous read-only triage (polls every 12s)
+node agent/demo.mjs         # seed a live post -> compete -> accept -> payout (needs a funded wallet)
 ```
 
 ---
 
-*Built in Berlin by Daniel Genchev. Because the cheapest way to close a TODO is sometimes to pay a dollar for it.*
+## Environment
+
+```
+chain        Arc testnet · eip155:5042002
+settlement   native USDC, 18 decimals, via msg.value (no ERC-20, no approvals)
+contract     CodeBounty.sol  ·  0xA773A6f6a0C2C7b627a2F19Ed5725cc2CD895E86
+explorer     https://testnet.arcscan.app/address/0xA773A6f6a0C2C7b627a2F19Ed5725cc2CD895E86
+front end    Next.js · ethers v6
+reported-by  Daniel Genchev (@GenchevDan)
+```
+
+If you can reproduce the original bug — an open issue with no money behind it going stale — escrow a dollar
+on it and assign the fix to whoever closes it first. That's the patch.
