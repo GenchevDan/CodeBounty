@@ -1,37 +1,41 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
 import { ethers } from "ethers";
-import { ARC_RPC, ARC_CHAIN_HEX, switchToArc } from "./arcNetwork";
-import { ensureDiscovered, pickProvider, pickDetail, setChosenRdns, type Eip1193Provider } from "./wallet";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ensureDiscovered, pickDetail, pickProvider, setChosenRdns, type Eip1193Provider } from "./wallet";
+import { ARC_CHAIN_HEX, ARC_RPC, switchToArc } from "./arcNetwork";
 
-const DISCONNECT_KEY = "codebounty.disconnected";
+// localStorage flag remembering an explicit user disconnect across reloads.
+const OPT_OUT_FLAG = ["cb", "arc", "v1", "optout"].join(":");
+
+const isArc = (hexId: unknown) => String(hexId).toLowerCase() === ARC_CHAIN_HEX.toLowerCase();
 
 export function useWallet() {
   const [account, setAccount] = useState("");
   const [balance, setBalance] = useState("");
   const [chainOk, setChainOk] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const disconnectedRef = useRef(false);
-  const subRef = useRef<{ provider: Eip1193Provider; cleanup: () => void } | null>(null);
+  const optedOutRef = useRef(false);
+  const listenRef = useRef<{ provider: Eip1193Provider; cleanup: () => void } | null>(null);
 
   const refreshBalance = useCallback(async (addr: string) => {
     try {
-      const p = new ethers.JsonRpcProvider(ARC_RPC);
-      const b = await p.getBalance(addr);
-      setBalance(parseFloat(ethers.formatEther(b)).toFixed(3));
+      const reader = new ethers.JsonRpcProvider(ARC_RPC);
+      const raw = await reader.getBalance(addr);
+      setBalance(parseFloat(ethers.formatEther(raw)).toFixed(3));
     } catch {
       setBalance("—");
     }
   }, []);
 
+  // Wire up account/chain change listeners on a freshly chosen provider.
   const subscribe = useCallback(
-    (inj: Eip1193Provider) => {
-      if (!inj?.on) return;
-      if (subRef.current?.provider === inj) return;
-      subRef.current?.cleanup();
+    (prov: Eip1193Provider) => {
+      if (!prov?.on) return;
+      if (listenRef.current?.provider === prov) return;
+      listenRef.current?.cleanup();
       const onAcc = (a: unknown) => {
-        if (disconnectedRef.current) return;
+        if (optedOutRef.current) return;
         const list = a as string[];
         if (list.length) {
           setAccount(list[0]);
@@ -42,49 +46,62 @@ export function useWallet() {
           setChainOk(false);
         }
       };
-      const onChain = (c: unknown) =>
-        setChainOk((c as string).toLowerCase() === ARC_CHAIN_HEX.toLowerCase());
-      inj.on("accountsChanged", onAcc);
-      inj.on("chainChanged", onChain);
-      subRef.current = {
-        provider: inj,
+      const onChain = (c: unknown) => setChainOk(isArc(c));
+      prov.on("accountsChanged", onAcc);
+      prov.on("chainChanged", onChain);
+      listenRef.current = {
+        provider: prov,
         cleanup: () => {
-          inj.removeListener?.("accountsChanged", onAcc);
-          inj.removeListener?.("chainChanged", onChain);
+          prov.removeListener?.("accountsChanged", onAcc);
+          prov.removeListener?.("chainChanged", onChain);
         },
       };
     },
     [refreshBalance]
   );
 
-  const connect = useCallback(async () => {
-    disconnectedRef.current = false;
+  const disconnect = useCallback(() => {
+    optedOutRef.current = true;
     if (typeof window !== "undefined") {
       try {
-        window.localStorage.removeItem(DISCONNECT_KEY);
+        window.localStorage.setItem(OPT_OUT_FLAG, "1");
+      } catch {
+        /* ignore */
+      }
+    }
+    setAccount("");
+    setBalance("");
+    setChainOk(false);
+  }, []);
+
+  const connect = useCallback(async () => {
+    optedOutRef.current = false;
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem(OPT_OUT_FLAG);
       } catch {
         /* ignore */
       }
     }
     await ensureDiscovered();
     const detail = pickDetail();
-    const inj = detail?.provider;
-    if (!inj) return;
+    const prov = detail?.provider;
+    if (!prov) return;
     setChosenRdns(detail.rdns);
     setConnecting(true);
     try {
-      const accs = (await inj.request({ method: "eth_requestAccounts" })) as string[];
+      const accs = (await prov.request({ method: "eth_requestAccounts" })) as string[];
       if (!accs?.length) return;
       setAccount(accs[0]);
-      subscribe(inj);
+      subscribe(prov);
       try {
-        await switchToArc(inj);
+        await switchToArc(prov);
       } catch {
         /* user declined the network switch */
       }
       try {
-        const id = (await inj.request({ method: "eth_chainId" })) as string;
-        setChainOk(id.toLowerCase() === ARC_CHAIN_HEX.toLowerCase());
+        const id = (await prov.request({ method: "eth_chainId" })) as string;
+        setChainOk(isArc(id));
       } catch {
         setChainOk(false);
       }
@@ -96,48 +113,35 @@ export function useWallet() {
     }
   }, [refreshBalance, subscribe]);
 
-  const disconnect = useCallback(() => {
-    disconnectedRef.current = true;
-    if (typeof window !== "undefined") {
-      try {
-        window.localStorage.setItem(DISCONNECT_KEY, "1");
-      } catch {
-        /* ignore */
-      }
-    }
-    setAccount("");
-    setBalance("");
-    setChainOk(false);
-  }, []);
-
+  // On mount: honour a prior opt-out, otherwise silently reattach an existing session.
   useEffect(() => {
-    if (typeof window !== "undefined" && window.localStorage.getItem(DISCONNECT_KEY) === "1") {
-      disconnectedRef.current = true;
+    if (typeof window !== "undefined" && window.localStorage.getItem(OPT_OUT_FLAG) === "1") {
+      optedOutRef.current = true;
     }
     (async () => {
       await ensureDiscovered();
-      const inj = pickProvider();
-      if (!inj) return;
-      if (!disconnectedRef.current) {
+      const prov = pickProvider();
+      if (!prov) return;
+      if (!optedOutRef.current) {
         try {
-          const accs = (await inj.request({ method: "eth_accounts" })) as string[];
+          const accs = (await prov.request({ method: "eth_accounts" })) as string[];
           if (accs.length) {
             setAccount(accs[0]);
             refreshBalance(accs[0]);
-            inj
+            prov
               .request({ method: "eth_chainId" })
-              .then((id) => setChainOk((id as string).toLowerCase() === ARC_CHAIN_HEX.toLowerCase()))
+              .then((id) => setChainOk(isArc(id)))
               .catch(() => {});
           }
         } catch {
           /* ignore */
         }
       }
-      subscribe(inj);
+      subscribe(prov);
     })();
     return () => {
-      subRef.current?.cleanup();
-      subRef.current = null;
+      listenRef.current?.cleanup();
+      listenRef.current = null;
     };
   }, [refreshBalance, subscribe]);
 

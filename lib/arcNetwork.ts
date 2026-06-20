@@ -1,3 +1,5 @@
+import { pickProvider, type Eip1193Provider } from "./wallet";
+
 declare global {
   interface Window {
     ethereum?: {
@@ -8,12 +10,13 @@ declare global {
   }
 }
 
-// ARC Testnet network config
+// ----- ARC Testnet chain constants -----
 export const ARC_CHAIN_ID = 5042002;
 export const ARC_CHAIN_HEX = "0x" + ARC_CHAIN_ID.toString(16);
 export const ARC_RPC = "https://rpc.testnet.arc.network";
 export const ARCSCAN = "https://testnet.arcscan.app";
 
+// Payload handed to wallet_addEthereumChain.
 export const ARC_NETWORK_PARAMS = {
   chainId: ARC_CHAIN_HEX,
   chainName: "ARC Testnet",
@@ -22,8 +25,6 @@ export const ARC_NETWORK_PARAMS = {
   blockExplorerUrls: [ARCSCAN],
 };
 
-import { pickProvider, type Eip1193Provider } from "./wallet";
-
 /** Adds ARC Testnet to the wallet (if not present) and switches to it. */
 export async function switchToArc(provider?: Eip1193Provider): Promise<void> {
   const eth = provider ?? pickProvider();
@@ -31,7 +32,7 @@ export async function switchToArc(provider?: Eip1193Provider): Promise<void> {
   try {
     await eth.request({ method: "wallet_addEthereumChain", params: [ARC_NETWORK_PARAMS] });
   } catch {
-    // Some wallets throw if chain already exists — ignore
+    // Some wallets throw when the chain already exists — that's fine, ignore it.
   }
   await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC_CHAIN_HEX }] });
 }
