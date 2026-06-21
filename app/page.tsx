@@ -100,7 +100,7 @@ export default function Page() {
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             {account ? (
               <span className="mono" style={{ fontSize: ".74rem", color: "var(--ink2)", display: "flex", gap: 8, alignItems: "center" }}>
-                <span className="seal" style={{ borderColor: chainOk ? "var(--green)" : "var(--amber)", color: chainOk ? "var(--green)" : "#a9730a" }}>{chainOk ? "ARC" : "wrong net"}</span>
+                <span className="seal" style={{ borderColor: chainOk ? "var(--green)" : "var(--amber)", color: chainOk ? "var(--green)" : "#9a6410" }}>{chainOk ? "ARC" : "wrong net"}</span>
                 {shortAddr(account)} · ${balance}
               </span>
             ) : <button className="btn btn-sm" onClick={connect}>{connecting ? "connecting…" : "Connect wallet"}</button>}
